@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use libc::{c_void, vm_deallocate};
 use mach2::{
     kern_return::KERN_SUCCESS,
     port::mach_port_t,
     traps,
     vm::{mach_vm_read, mach_vm_region},
-    vm_region::{vm_region_basic_info_64, VM_REGION_BASIC_INFO_64},
     vm_prot::VM_PROT_READ,
+    vm_region::{VM_REGION_BASIC_INFO_64, vm_region_basic_info_64},
     vm_types::{mach_vm_address_t, mach_vm_size_t},
 };
 use std::mem;
@@ -37,7 +37,9 @@ impl ProcessMemory for MacProcessMemory {
 
         let region_start = unsafe { find_region_with_probe(task)? };
 
-        let base_address = region_start.wrapping_add(PROBE_OFFSET).wrapping_sub(0x10000000u64);
+        let base_address = region_start
+            .wrapping_add(PROBE_OFFSET)
+            .wrapping_sub(0x10000000u64);
 
         let verify_addr = base_address.wrapping_add(0x10000000u64);
         let verify_bytes = mach_read_raw(task, verify_addr, PROBE_READ_LEN)
@@ -47,10 +49,7 @@ impl ProcessMemory for MacProcessMemory {
             return Err(anyhow!("Memory pattern not found at verification address"));
         }
 
-        Ok(Self {
-            task,
-            base_address,
-        })
+        Ok(Self { task, base_address })
     }
 
     fn read_bytes(&self, address: u32, length: usize) -> Result<Vec<u8>> {
@@ -98,7 +97,11 @@ fn mach_read_raw(task: mach_port_t, target_addr: u64, length: usize) -> Result<V
     let out = slice.to_vec();
 
     unsafe {
-        vm_deallocate(traps::mach_task_self(), data as libc::vm_address_t, data_count as usize);
+        vm_deallocate(
+            traps::mach_task_self(),
+            data as libc::vm_address_t,
+            data_count as usize,
+        );
     }
 
     Ok(out)
@@ -148,7 +151,9 @@ unsafe fn find_region_with_probe(task: mach_port_t) -> Result<u64> {
         address = address.wrapping_add(size);
     }
 
-    Err(anyhow!("No suitable memory region found via probe scanning"))
+    Err(anyhow!(
+        "No suitable memory region found via probe scanning"
+    ))
 }
 
 pub fn find_cemu_process() -> Result<i32> {
@@ -164,7 +169,10 @@ pub fn find_cemu_process() -> Result<i32> {
 
         if let Ok(name) = proc_pid::name(pid_i32) {
             let name_lc = name.to_lowercase();
-            if TARGET_NAMES.iter().any(|t| name_lc == *t || name_lc.contains(t)) {
+            if TARGET_NAMES
+                .iter()
+                .any(|t| name_lc == *t || name_lc.contains(t))
+            {
                 return Ok(pid_i32);
             }
         }
@@ -175,7 +183,10 @@ pub fn find_cemu_process() -> Result<i32> {
                 .and_then(|s| s.to_str())
             {
                 let stem_lc = stem.to_lowercase();
-                if TARGET_NAMES.iter().any(|t| stem_lc == *t || stem_lc.contains(t)) {
+                if TARGET_NAMES
+                    .iter()
+                    .any(|t| stem_lc == *t || stem_lc.contains(t))
+                {
                     return Ok(pid_i32);
                 }
             }

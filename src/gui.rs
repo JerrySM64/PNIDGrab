@@ -1,15 +1,15 @@
 use anyhow::{Context, Result};
+use gtk4::glib;
 use gtk4::prelude::*;
 use libadwaita as adw;
-use gtk4::glib;
-use libadwaita::prelude::AdwApplicationWindowExt;
-use std::os::unix::net::{UnixListener, UnixStream};
+use libadwaita::prelude::*;
 use std::io::{Read, Write};
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
 
-use crate::fetch_all;
+use crate::{FetchResult, PlayerRecord, fetch_all};
 
 pub fn maybe_run_helper() -> bool {
     if std::env::args().any(|a| a == "--helper") {
@@ -38,7 +38,8 @@ pub fn maybe_run_helper() -> bool {
 }
 
 fn get_password() -> Option<String> {
-    #[cfg(target_os = "macos")] {
+    #[cfg(target_os = "macos")]
+    {
         let output = Command::new("/usr/bin/osascript")
             .args([
                 "-e",
@@ -64,7 +65,8 @@ fn get_password() -> Option<String> {
         return if pw.is_empty() { None } else { Some(pw) };
     }
 
-    #[cfg(target_os = "linux")] {
+    #[cfg(target_os = "linux")]
+    {
         if let Ok(output) = Command::new("zenity")
             .args([
                 "--password",
@@ -148,7 +150,7 @@ fn start_privileged_helper() -> Result<()> {
     Ok(())
 }
 
-fn request_fetch_via_helper() -> Result<crate::FetchResult> {
+fn request_fetch_via_helper() -> Result<FetchResult> {
     let mut retries = 0;
     loop {
         match UnixStream::connect("/tmp/pnidgrab.sock") {
@@ -164,6 +166,128 @@ fn request_fetch_via_helper() -> Result<crate::FetchResult> {
             Err(e) => return Err(e.into()),
         }
     }
+}
+
+fn gender_label(code: u8) -> &'static str {
+    match code {
+        0 => "Girl",
+        1 => "Boy",
+        _ => "Unknown",
+    }
+}
+
+fn skin_tone_label(code: u8) -> String {
+    format!("Type {}", code)
+}
+
+fn eye_color_label(code: u8) -> String {
+    format!("Color {}", code)
+}
+
+fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord) {
+    let dialog = adw::Window::builder()
+        .transient_for(parent)
+        .modal(true)
+        .title(&format!("Player {}", player.index + 1))
+        .default_width(420)
+        .default_height(520)
+        .build();
+
+    let header = adw::HeaderBar::new();
+    let title = gtk4::Label::new(Some(&format!("Player {}", player.index + 1)));
+    title.add_css_class("title-3");
+    header.set_title_widget(Some(&title));
+    header.set_show_end_title_buttons(true);
+
+    let content_box = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
+    content_box.set_margin_top(18);
+    content_box.set_margin_bottom(18);
+    content_box.set_margin_start(18);
+    content_box.set_margin_end(18);
+
+    let mk_header = |text: &str| {
+        let lbl = gtk4::Label::new(Some(text));
+        lbl.set_xalign(0.0);
+        lbl.add_css_class("title-4");
+        lbl.add_css_class("large-font");
+        content_box.append(&lbl);
+    };
+
+    let mk = |text: String| {
+        let lbl = gtk4::Label::new(Some(&text));
+        lbl.set_xalign(0.0);
+        lbl.add_css_class("large-font");
+        content_box.append(&lbl);
+    };
+
+    mk_header("General");
+    mk(format!("Name: {}", player.name));
+    mk(format!("PID (Hex): {}", player.pid_hex));
+    mk(format!("PID (Dec): {}", player.pid_dec));
+    mk(format!("PNID: {}", player.pnid));
+    mk(format!("Area: {}", player.area));
+    content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
+
+    mk_header("Appearance");
+    mk(format!(
+        "Gender: {} ({})",
+        player.gender,
+        gender_label(player.gender)
+    ));
+    mk(format!(
+        "SkinTone: {} ({})",
+        player.skin_tone,
+        skin_tone_label(player.skin_tone)
+    ));
+    mk(format!(
+        "EyeColor: {} ({})",
+        player.eye_color,
+        eye_color_label(player.eye_color)
+    ));
+    content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
+
+    mk_header("Equipment");
+    mk(format!("Headgear: {}", player.hat));
+    mk(format!("Clothes: {}", player.cloth));
+    mk(format!("Shoes: {}", player.shoes));
+    mk(format!("Ink Tank: {}", player.tank_id));
+    mk(format!(
+        "Weapon: {:04X} ({})",
+        player.weapon_id, player.weapon_name
+    ));
+    content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
+
+    mk_header("Level, Rank(?) & Fest");
+    mk(format!("Level: {}", player.rank + 1));
+    mk(format!("Rank(?): {}", player.rank_points));
+    mk(format!("FestTeam: {}", player.fest_team));
+    mk(format!("FestID: {}", player.fest_id));
+    mk(format!("FestGrade (What's this?): {}", player.fest_grade));
+
+    let scrolled = gtk4::ScrolledWindow::new();
+    scrolled.set_vexpand(true);
+    scrolled.set_child(Some(&content_box));
+
+    let action_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 6);
+    action_box.set_halign(gtk4::Align::End);
+    action_box.set_margin_top(6);
+    action_box.set_margin_bottom(12);
+    action_box.set_margin_end(12);
+
+    let close_button = gtk4::Button::with_label("Close");
+    {
+        let dialog_clone = dialog.clone();
+        close_button.connect_clicked(move |_| dialog_clone.close());
+    }
+    action_box.append(&close_button);
+
+    let main_box = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
+    main_box.append(&header);
+    main_box.append(&scrolled);
+    main_box.append(&action_box);
+
+    dialog.set_content(Some(&main_box));
+    dialog.present();
 }
 
 pub fn run_app() -> Result<()> {
@@ -188,7 +312,7 @@ pub fn run_app() -> Result<()> {
 fn build_ui(app: &adw::Application) {
     let win = adw::ApplicationWindow::builder()
         .application(app)
-        .title("PNIDGrab 3.0.0")
+        .title("PNIDGrab 4.0.0")
         .default_width(450)
         .default_height(335)
         .resizable(false)
@@ -219,7 +343,7 @@ fn build_ui(app: &adw::Application) {
     }
 
     let toast_overlay = adw::ToastOverlay::new();
-    
+
     let header_bar = adw::HeaderBar::new();
 
     let vbox = gtk4::Box::new(gtk4::Orientation::Vertical, 8);
@@ -229,11 +353,11 @@ fn build_ui(app: &adw::Application) {
     vbox.set_margin_bottom(12);
 
     let list_store = gtk4::ListStore::new(&[
-        glib::Type::U8,
-        glib::Type::STRING,
-        glib::Type::U32,
-        glib::Type::STRING,
-        glib::Type::STRING,
+        glib::Type::U8,     // Player #
+        glib::Type::STRING, // PID Hex
+        glib::Type::U32,    // PID Dec
+        glib::Type::STRING, // PNID
+        glib::Type::STRING, // Name
     ]);
 
     let tree_view = gtk4::TreeView::with_model(&list_store);
@@ -298,14 +422,13 @@ fn build_ui(app: &adw::Application) {
 
     win.set_content(Some(&toast_overlay));
 
-    let player_data = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
-    let session_id_data = std::rc::Rc::new(std::cell::RefCell::new(None));
+    let player_data = std::rc::Rc::new(std::cell::RefCell::new(Vec::<PlayerRecord>::new()));
+    let session_id_data = std::rc::Rc::new(std::cell::RefCell::new(None::<u32>));
     let timestamp_data = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
 
     let list_store_clone = list_store.clone();
     let session_label_clone = session_label.clone();
     let timestamp_label_clone = timestamp_label.clone();
-    let _fetch_button_clone = fetch_button.clone();
     let player_data_clone = player_data.clone();
     let session_id_data_clone = session_id_data.clone();
     let timestamp_data_clone = timestamp_data.clone();
@@ -317,23 +440,31 @@ fn build_ui(app: &adw::Application) {
                 let mut pd = player_data_clone.borrow_mut();
                 *pd = result.players.clone();
                 *session_id_data_clone.borrow_mut() = result.session_id;
-                *timestamp_data_clone.borrow_mut() = result.fetched_at.format("%Y-%m-%d %H:%M:%S").to_string();
+                *timestamp_data_clone.borrow_mut() =
+                    result.fetched_at.format("%Y-%m-%d %H:%M:%S").to_string();
 
                 for p in result.players.iter() {
                     let iter = list_store_clone.append();
-                    list_store_clone.set(&iter, &[
-                        (0, &p.index),
-                        (1, &p.pid_hex),
-                        (2, &p.pid_dec),
-                        (3, &p.pnid),
-                        (4, &p.name),
-                    ]);
+                    list_store_clone.set(
+                        &iter,
+                        &[
+                            (0, &(p.index + 1)),
+                            (1, &p.pid_hex),
+                            (2, &p.pid_dec),
+                            (3, &p.pnid),
+                            (4, &p.name),
+                        ],
+                    );
                 }
                 match result.session_id {
-                    Some(sid) => session_label_clone.set_label(&format!("Session ID: {:08X} (Dec: {})", sid, sid)),
+                    Some(sid) => session_label_clone
+                        .set_label(&format!("Session ID: {:08X} (Dec: {})", sid, sid)),
                     None => session_label_clone.set_label("Session ID: None"),
                 }
-                timestamp_label_clone.set_label(&format!("Fetched at: {}", result.fetched_at.format("%Y-%m-%d %H:%M:%S")));
+                timestamp_label_clone.set_label(&format!(
+                    "Fetched at: {}",
+                    result.fetched_at.format("%Y-%m-%d %H:%M:%S")
+                ));
             }
             Err(e) => eprintln!("Fetch error: {}", e),
         }
@@ -341,7 +472,9 @@ fn build_ui(app: &adw::Application) {
     };
 
     glib::idle_add_local(fetch_logic.clone());
-    fetch_button.connect_clicked(move |_| { glib::idle_add_local(fetch_logic.clone()); });
+    fetch_button.connect_clicked(move |_| {
+        glib::idle_add_local(fetch_logic.clone());
+    });
 
     let player_data_copy = player_data.clone();
     let session_id_data_copy = session_id_data.clone();
@@ -352,8 +485,43 @@ fn build_ui(app: &adw::Application) {
     copy_button.connect_clicked(move |_| {
         let mut copy_text = String::new();
         for p in player_data_copy.borrow().iter() {
-            copy_text.push_str(&format!("Player {}: PID (Hex: {}, Dec: {}), PNID: {}, Name: {}\n",
-                p.index, p.pid_hex, p.pid_dec, p.pnid, p.name));
+            copy_text.push_str(&format!("Player #{}\n", p.index + 1));
+            copy_text.push_str(&format!("Name: {}\n", p.name));
+            copy_text.push_str(&format!("PID Hex: {}\n", p.pid_hex));
+            copy_text.push_str(&format!("PID Dec: {}\n", p.pid_dec));
+            copy_text.push_str(&format!("PNID: {}\n", p.pnid));
+
+            copy_text.push_str(&format!("Area: {}\n", p.area));
+            copy_text.push_str(&format!(
+                "Gender: {} ({})\n",
+                p.gender,
+                gender_label(p.gender)
+            ));
+            copy_text.push_str(&format!(
+                "SkinTone: {} ({})\n",
+                p.skin_tone,
+                skin_tone_label(p.skin_tone)
+            ));
+            copy_text.push_str(&format!(
+                "EyeColor: {} ({})\n",
+                p.eye_color,
+                eye_color_label(p.eye_color)
+            ));
+            copy_text.push_str(&format!("Headgear: {}\n", p.hat));
+            copy_text.push_str(&format!("Clothes: {}\n", p.cloth));
+            copy_text.push_str(&format!("Shoes: {}\n", p.shoes));
+            copy_text.push_str(&format!("Ink Tank: {}\n", p.tank_id));
+            copy_text.push_str(&format!(
+                "Weapon: {:04X} ({})\n",
+                p.weapon_id, p.weapon_name
+            ));
+
+            copy_text.push_str(&format!("Level: {}\n", p.rank + 1));
+            copy_text.push_str(&format!("Rank (?): {}\n", p.rank_points));
+            copy_text.push_str(&format!("FestTeam: {}\n", p.fest_team));
+            copy_text.push_str(&format!("FestID: {}\n", p.fest_id));
+            copy_text.push_str(&format!("FestGrade (What's this?): {}\n", p.fest_grade));
+            copy_text.push('\n');
         }
         if let Some(sid) = *session_id_data_copy.borrow() {
             copy_text.push_str(&format!("Session ID: {:08X} (Dec: {})\n", sid, sid));
@@ -368,6 +536,23 @@ fn build_ui(app: &adw::Application) {
         let toast = adw::Toast::new("Data copied to clipboard!");
         toast.set_timeout(2);
         toast_overlay_clone.add_toast(toast);
+    });
+
+    let win_for_dialog = win.clone();
+    let player_data_for_dialog = player_data.clone();
+    tree_view.connect_row_activated(move |view, path, _| {
+        if let Some(model) = view.model() {
+            if let Some(iter) = model.iter(path) {
+                let idx_val: u8 = model.get(&iter, 0);
+                let players = player_data_for_dialog.borrow();
+                if idx_val == 0 {
+                    return;
+                }
+                if let Some(p) = players.iter().find(|pp| pp.index == idx_val - 1) {
+                    show_player_properties(&win_for_dialog, p);
+                }
+            }
+        }
     });
 
     win.show();

@@ -1,28 +1,28 @@
 [package]
 name = "pnidgrab"
-version = "3.0.0"
+version = "4.0.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 chrono = { version = "0.4.42", features = ["serde"] }
-cfg-if = "1.0.3"
-libc = "0.2.175"
-reqwest = { version = "0.12.23", features = ["blocking"] }
-roxmltree = "0.20.0"
-gtk4 = "0.10.1"
-libadwaita = "0.8.0"
-gio = "0.21.2"
+cfg-if = "1.0.4"
+libc = "0.2.177"
+reqwest = { version = "0.12.24", features = ["blocking"] }
+roxmltree = "0.21.1"
+gtk4 = "0.10.2"
+libadwaita = "0.8.1"
+gio = "0.21.4"
 nix = { version = "0.30.1", features = ["user"] }
-serde = { version = "1.0.225", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-libproc = "0.14.10"
-mach2 = "0.5.0"
+libproc = "0.14.11"
+mach2 = "0.6.0"
 
 [target.'cfg(windows)'.dependencies.winapi]
-version = "0.3.9" 
+version = "0.3.9"
 features = [
   "winnt",
   "processthreadsapi",

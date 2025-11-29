@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use libc::{c_void, iovec, process_vm_readv};
 use std::{
     fs,
@@ -125,10 +125,7 @@ fn parse_maps(pid: i32) -> Result<Vec<MemoryRegion>> {
 fn find_suitable_region(regions: &[MemoryRegion]) -> Result<&MemoryRegion> {
     regions
         .iter()
-        .find(|r| {
-            r.permissions.contains('r')
-                && (r.end - r.start) >= MIN_REGION_SIZE
-        })
+        .find(|r| r.permissions.contains('r') && (r.end - r.start) >= MIN_REGION_SIZE)
         .ok_or_else(|| anyhow!("No suitable memory region found"))
 }
 

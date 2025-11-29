@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use winapi::{
     ctypes::c_void,
     shared::winerror::ERROR_PARTIAL_COPY,
@@ -7,10 +7,12 @@ use winapi::{
         memoryapi::{ReadProcessMemory, VirtualQueryEx},
         processthreadsapi::OpenProcess,
         tlhelp32::{
-            CreateToolhelp32Snapshot, Process32First, Process32Next, PROCESSENTRY32,
+            CreateToolhelp32Snapshot, PROCESSENTRY32, Process32First, Process32Next,
             TH32CS_SNAPPROCESS,
         },
-        winnt::{MEMORY_BASIC_INFORMATION, PAGE_READWRITE, PROCESS_VM_READ, PROCESS_QUERY_INFORMATION},
+        winnt::{
+            MEMORY_BASIC_INFORMATION, PAGE_READWRITE, PROCESS_QUERY_INFORMATION, PROCESS_VM_READ,
+        },
     },
 };
 
@@ -28,7 +30,8 @@ pub struct WindowsProcessMemory {
 impl ProcessMemory for WindowsProcessMemory {
     fn new(pid: i32) -> Result<Self> {
         unsafe {
-            let process_handle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, pid as u32);
+            let process_handle =
+                OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, pid as u32);
             if process_handle.is_null() {
                 return Err(anyhow!("Failed to open process"));
             }
@@ -75,12 +78,7 @@ impl ProcessMemory for WindowsProcessMemory {
         if bytes.len() < 4 {
             return Err(anyhow!("Failed to read 4 bytes from address {:X}", address));
         }
-        let arr: [u8; 4] = [
-            bytes[0],
-            bytes[1],
-            bytes[2],
-            bytes[3],
-        ];
+        let arr: [u8; 4] = [bytes[0], bytes[1], bytes[2], bytes[3]];
         Ok(u32::from_be_bytes(arr))
     }
 
@@ -103,16 +101,15 @@ impl Drop for WindowsProcessMemory {
 
 unsafe fn find_cemu_base(process_handle: *mut c_void) -> Result<u64> {
     let mut address = 0;
-    let mut mbi: MEMORY_BASIC_INFORMATION = unsafe { std::mem::zeroed() };
+    let mut mbi: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
 
-    while unsafe {
-        VirtualQueryEx(
-            process_handle, 
-            address as *mut c_void, 
-            &mut mbi, 
-            std::mem::size_of::<MEMORY_BASIC_INFORMATION>()
-        )
-    } != 0 {
+    while VirtualQueryEx(
+        process_handle,
+        address as *mut c_void,
+        &mut mbi,
+        std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+    ) != 0
+    {
         let region_size = mbi.RegionSize as u64;
         let is_readable = mbi.Protect & PAGE_READWRITE != 0;
         let state = mbi.State;
@@ -122,15 +119,14 @@ unsafe fn find_cemu_base(process_handle: *mut c_void) -> Result<u64> {
             let mut bytes_read = 0;
 
             let read_address = (address as u64 + 0xE000000) as *const c_void;
-            if unsafe {
-                ReadProcessMemory(
-                    process_handle, 
-                    read_address, 
-                    buffer.as_mut_ptr() as *mut c_void, 
-                    20, 
-                    &mut bytes_read
-                )
-            } != 0 {
+            if ReadProcessMemory(
+                process_handle,
+                read_address,
+                buffer.as_mut_ptr() as *mut c_void,
+                20,
+                &mut bytes_read,
+            ) != 0
+            {
                 if buffer.windows(3).any(|w| w == PATTERN) {
                     return Ok(address as u64);
                 }
@@ -169,7 +165,10 @@ pub fn find_cemu_process() -> Result<i32> {
             .to_string();
 
             let process_name_lower = process_name.to_lowercase();
-            if TARGET_NAMES.iter().any(|&name| process_name_lower.contains(&name.to_lowercase())) {
+            if TARGET_NAMES
+                .iter()
+                .any(|&name| process_name_lower.contains(&name.to_lowercase()))
+            {
                 return Ok(process_entry.th32ProcessID as i32);
             }
 

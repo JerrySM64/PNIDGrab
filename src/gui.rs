@@ -172,16 +172,13 @@ fn gender_label(code: u8) -> &'static str {
     match code {
         0 => "Girl",
         1 => "Boy",
+        2 => "Rival",
         _ => "Unknown",
     }
 }
 
 fn skin_tone_label(code: u8) -> String {
     format!("Type {}", code)
-}
-
-fn eye_color_label(code: u8) -> String {
-    format!("Color {}", code)
 }
 
 fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord) {
@@ -241,28 +238,36 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
     ));
     mk(format!(
         "EyeColor: {} ({})",
-        player.eye_color,
-        eye_color_label(player.eye_color)
+        player.eye_color, player.eye_color_name
     ));
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
 
     mk_header("Equipment");
-    mk(format!("Headgear: {}", player.hat));
-    mk(format!("Clothes: {}", player.cloth));
-    mk(format!("Shoes: {}", player.shoes));
-    mk(format!("Ink Tank: {}", player.tank_id));
+    mk(format!(
+        "Headgear: {} ({})",
+        player.headgear, player.headgear_name
+    ));
+    mk(format!(
+        "Clothes: {} ({})",
+        player.clothes, player.clothes_name
+    ));
+    mk(format!("Shoes: {} ({})", player.shoes, player.shoes_name));
+    mk(format!(
+        "Ink Tank: {} ({})",
+        player.tank_id, player.tank_name
+    ));
     mk(format!(
         "Weapon: {:04X} ({})",
         player.weapon_id, player.weapon_name
     ));
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
 
-    mk_header("Level, Rank(?) & Fest");
+    mk_header("Level, Rank & Fest");
     mk(format!("Level: {}", player.rank + 1));
-    mk(format!("Rank(?): {}", player.rank_points));
-    mk(format!("FestTeam: {}", player.fest_team));
-    mk(format!("FestID: {}", player.fest_id));
-    mk(format!("FestGrade (What's this?): {}", player.fest_grade));
+    mk(format!("Rank: {}", player.rank_points));
+    mk(format!("Fest ID: {}", player.fest_id));
+    mk(format!("Fest Team: {}", player.fest_team));
+    mk(format!("Fest Title: {}", player.fest_grade));
 
     let scrolled = gtk4::ScrolledWindow::new();
     scrolled.set_vexpand(true);
@@ -372,7 +377,7 @@ fn build_ui(app: &adw::Application) {
         tree.append_column(&column);
     }
 
-    add_column(&tree_view, "Player #", 0);
+    add_column(&tree_view, "Player", 0);
     add_column(&tree_view, "PID (Hex)", 1);
     add_column(&tree_view, "PID (Dec)", 2);
     add_column(&tree_view, "PNID", 3);
@@ -498,17 +503,16 @@ fn build_ui(app: &adw::Application) {
                 gender_label(p.gender)
             ));
             copy_text.push_str(&format!(
-                "SkinTone: {} ({})\n",
+                "Skin Tone: {} ({})\n",
                 p.skin_tone,
                 skin_tone_label(p.skin_tone)
             ));
             copy_text.push_str(&format!(
-                "EyeColor: {} ({})\n",
-                p.eye_color,
-                eye_color_label(p.eye_color)
+                "Eye Color: {} ({})\n",
+                p.eye_color, p.eye_color_name
             ));
-            copy_text.push_str(&format!("Headgear: {}\n", p.hat));
-            copy_text.push_str(&format!("Clothes: {}\n", p.cloth));
+            copy_text.push_str(&format!("Headgear: {}\n", p.headgear));
+            copy_text.push_str(&format!("Clothes: {}\n", p.clothes));
             copy_text.push_str(&format!("Shoes: {}\n", p.shoes));
             copy_text.push_str(&format!("Ink Tank: {}\n", p.tank_id));
             copy_text.push_str(&format!(
@@ -517,10 +521,10 @@ fn build_ui(app: &adw::Application) {
             ));
 
             copy_text.push_str(&format!("Level: {}\n", p.rank + 1));
-            copy_text.push_str(&format!("Rank (?): {}\n", p.rank_points));
-            copy_text.push_str(&format!("FestTeam: {}\n", p.fest_team));
-            copy_text.push_str(&format!("FestID: {}\n", p.fest_id));
-            copy_text.push_str(&format!("FestGrade (What's this?): {}\n", p.fest_grade));
+            copy_text.push_str(&format!("Rank: {}\n", p.rank_points));
+            copy_text.push_str(&format!("Fest Team: {}\n", p.fest_team));
+            copy_text.push_str(&format!("Fest ID: {}\n", p.fest_id));
+            copy_text.push_str(&format!("Fest Title: {}\n", p.fest_grade));
             copy_text.push('\n');
         }
         if let Some(sid) = *session_id_data_copy.borrow() {

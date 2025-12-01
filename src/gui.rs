@@ -256,15 +256,38 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
         "Ink Tank: {} ({})",
         player.tank_id, player.tank_name
     ));
+    content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
+    mk_header("Weapon");
     mk(format!(
-        "Weapon: {:04X} ({})",
-        player.weapon_id, player.weapon_name
+        "Weapon Set (Can be inaccurate): {} ({})",
+        player.weapon_set, player.weapon_set_name
+    ));
+    /*
+    mk(format!(
+        "Main Weapon ID: {} ({})",
+        player.weapon_id_main, player.weapon_main_name
+    ));
+    */
+    mk(format!(
+        "Sub Weapon ID: {} ({})",
+        player.weapon_id_sub, player.weapon_sub_name
+    ));
+    mk(format!(
+        "Special Weapon ID: {} ({})",
+        player.weapon_id_special, player.weapon_special_name
+    ));
+    mk(format!(
+        "Total Weapon Turf Points: {}p",
+        player.weaponturf_total
     ));
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
 
     mk_header("Level, Rank & Fest");
     mk(format!("Level: {}", player.rank + 1));
-    mk(format!("Rank: {}", player.rank_points));
+    mk(format!(
+        "Rank: {} ({})",
+        player.rank_points, player.rank_label
+    ));
     mk(format!("Fest ID: {}", player.fest_id));
     mk(format!("Fest Team: {}", player.fest_team));
     mk(format!("Fest Title: {}", player.fest_grade));
@@ -516,12 +539,12 @@ fn build_ui(app: &adw::Application) {
             copy_text.push_str(&format!("Shoes: {}\n", p.shoes));
             copy_text.push_str(&format!("Ink Tank: {}\n", p.tank_id));
             copy_text.push_str(&format!(
-                "Weapon: {:04X} ({})\n",
-                p.weapon_id, p.weapon_name
+                "Weapon Set (Can be inaccurate): {} ({})\n",
+                p.weapon_set, p.weapon_set_name
             ));
 
             copy_text.push_str(&format!("Level: {}\n", p.rank + 1));
-            copy_text.push_str(&format!("Rank: {}\n", p.rank_points));
+            copy_text.push_str(&format!("Rank: {} ({})\n", p.rank_points, p.rank_label));
             copy_text.push_str(&format!("Fest Team: {}\n", p.fest_team));
             copy_text.push_str(&format!("Fest ID: {}\n", p.fest_id));
             copy_text.push_str(&format!("Fest Title: {}\n", p.fest_grade));

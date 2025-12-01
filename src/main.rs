@@ -8,7 +8,10 @@ mod gui;
 mod id;
 mod platform;
 
-use id::{clothes_name, eye_color_name, headgear_name, shoes_name, tank_name, weapon_name};
+use id::{
+    clothes_name, eye_color_name, headgear_name, rank_label, shoes_name, tank_name,
+    weapon_name_main, weapon_name_special, weapon_name_sub,
+};
 
 use platform::ProcessMemory;
 use platform::find_cemu_process;
@@ -39,7 +42,11 @@ const OFF_RANK_POINTS: u32 = 0xB0;
 const OFF_FEST_TEAM: u32 = 0xB4;
 const OFF_FEST_ID: u32 = 0xB8;
 const OFF_FEST_GRADE: u32 = 0xBC;
-const OFF_WEAPON_WORD: u32 = 0x41;
+const OFF_WEAPONSET: u32 = 0x40;
+// const OFF_WEAPONID_MAIN: u32 = 0x44;
+const OFF_WEAPONID_SUB: u32 = 0x48;
+const OFF_WEAPONID_SPECIAL: u32 = 0x4C;
+const OFF_WEAPONTURF_TOTAL: u32 = 0x50;
 const OFF_PID: u32 = 0xD0;
 const SESSION_ROOT_PTR: u32 = 0x101E8980;
 const SESSION_INDEX_OFFSET: u32 = 0xBD;
@@ -68,11 +75,21 @@ pub struct PlayerRecord {
     pub tank_id: u32,
     pub tank_name: String,
 
-    pub weapon_id: u16,
-    pub weapon_name: String,
+    pub weapon_set: u16,
+    pub weapon_set_name: String,
+    pub weapon_id_sub: u16,
+    pub weapon_sub_name: String,
+    pub weapon_id_special: u8,
+    pub weapon_special_name: String,
+    pub weaponturf_total: u32,
 
-    pub rank: u8,
-    pub rank_points: u32,
+    /*
+    pub weapon_id_main: u16,
+    pub weapon_main_name: String,
+    */
+    pub rank: i8,
+    pub rank_points: i8,
+    pub rank_label: String,
     pub fest_team: u32,
     pub fest_id: u32,
     pub fest_grade: u32,
@@ -176,11 +193,21 @@ pub fn fetch_all() -> Result<FetchResult> {
                 tank_id: 0,
                 tank_name: "Unknown".to_string(),
 
-                weapon_id: 0,
-                weapon_name: "Unknown".to_string(),
+                weapon_set: 0,
+                weapon_set_name: "Unknown".to_string(),
+                weapon_id_sub: 0,
+                weapon_sub_name: "Unknown".to_string(),
+                weapon_id_special: 0,
+                weapon_special_name: "Unknown".to_string(),
+                weaponturf_total: 0,
 
+                /*
+                weapon_id_main: 0,
+                weapon_main_name: "Unknown".to_string(),
+                */
                 rank: 0,
                 rank_points: 0,
+                rank_label: "Unknown".to_string(),
                 fest_team: 0,
                 fest_id: 0,
                 fest_grade: 0,
@@ -192,7 +219,11 @@ pub fn fetch_all() -> Result<FetchResult> {
         let name = decode_name(&name_bytes);
 
         let pid_raw = proc_mem.read_u32(player_ptr + OFF_PID)?;
-        let pid_hex = format!("{:08X}", pid_raw);
+        let pid_bytes = pid_raw.to_le_bytes();
+        let pid_hex = format!(
+            "{:02X}{:02X}{:02X}{:02X}",
+            pid_bytes[0], pid_bytes[1], pid_bytes[2], pid_bytes[3]
+        );
         let pnid = get_pnid(pid_raw as i32);
 
         let area = proc_mem.read_u32(player_ptr + OFF_AREA)?;
@@ -209,16 +240,28 @@ pub fn fetch_all() -> Result<FetchResult> {
         let tank_id = proc_mem.read_u32(player_ptr + OFF_TANK_ID)?;
         let tank_name = tank_name(tank_id).to_string();
 
-        let rank = proc_mem.read_u32(player_ptr + OFF_RANK)? as u8;
-        let rank_points = proc_mem.read_u32(player_ptr + OFF_RANK_POINTS)?;
+        let rank = proc_mem.read_u32(player_ptr + OFF_RANK)? as i8;
+        let rank_points = proc_mem.read_u32(player_ptr + OFF_RANK_POINTS)? as i8;
+        let rank_label = rank_label(rank_points).to_string();
         let fest_team = proc_mem.read_u32(player_ptr + OFF_FEST_TEAM)?;
         let fest_id = proc_mem.read_u32(player_ptr + OFF_FEST_ID)?;
         let fest_grade = proc_mem.read_u32(player_ptr + OFF_FEST_GRADE)?;
 
+        /*
         let weapon_word = proc_mem.read_u32(player_ptr + OFF_WEAPON_WORD)?;
         let weapon_id = ((weapon_word >> 8) & 0xFFFF) as u16;
 
-        let weapon_name = weapon_name(weapon_id).to_string();
+        let weapon_id_main = proc_mem.read_u32(player_ptr + OFF_WEAPONID_MAIN)? as u16;
+        let weapon_main_name = weapon_name_main(weapon_id_main).to_string();
+        */
+
+        let weapon_set = proc_mem.read_u32(player_ptr + OFF_WEAPONSET)? as u16;
+        let weapon_set_name = weapon_name_main(weapon_set).to_string();
+        let weapon_id_sub = proc_mem.read_u32(player_ptr + OFF_WEAPONID_SUB)? as u16;
+        let weapon_sub_name = weapon_name_sub(weapon_id_sub).to_string();
+        let weapon_id_special = proc_mem.read_u32(player_ptr + OFF_WEAPONID_SPECIAL)? as u8;
+        let weapon_special_name = weapon_name_special(weapon_id_special).to_string();
+        let weaponturf_total = proc_mem.read_u32(player_ptr + OFF_WEAPONTURF_TOTAL)?;
 
         players.push(PlayerRecord {
             index: i as u8,
@@ -242,11 +285,21 @@ pub fn fetch_all() -> Result<FetchResult> {
             tank_id,
             tank_name,
 
-            weapon_id,
-            weapon_name,
+            weapon_set,
+            weapon_set_name,
+            weapon_id_sub,
+            weapon_sub_name,
+            weapon_id_special,
+            weapon_special_name,
+            weaponturf_total,
 
+            /*
+            weapon_id_main,
+            weapon_main_name,
+            */
             rank,
             rank_points,
+            rank_label,
             fest_team,
             fest_id,
             fest_grade,

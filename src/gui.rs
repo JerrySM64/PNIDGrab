@@ -8,6 +8,8 @@ use libadwaita::prelude::*;
 #[cfg(target_family = "unix")]
 use std::io::{Read, Write};
 #[cfg(target_family = "unix")]
+use std::os::unix::fs::PermissionsExt;
+#[cfg(target_family = "unix")]
 use std::os::unix::net::{UnixListener, UnixStream};
 #[cfg(target_family = "unix")]
 use std::process::{Command, Stdio};
@@ -89,12 +91,19 @@ fn start_privileged_helper() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
+        let helper_path = format!("/tmp/pnidgrab-helper-{}", std::process::id());
+        let helper_exe = if std::fs::copy(&exe, &helper_path).is_ok() {
+            let _ = std::fs::set_permissions(&helper_path, std::fs::Permissions::from_mode(0o755));
+            helper_path.as_str()
+        } else {
+            exe.to_string_lossy().as_ref()
+        };
         Command::new("pkexec")
-            .arg(exe)
+            .arg(helper_exe)
             .arg("--helper")
-            .stdin(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .spawn()
             .context("failed to spawn pkexec helper")?;
     }
@@ -140,9 +149,9 @@ fn request_fetch_via_helper() -> Result<FetchResult> {
                 s.read_to_string(&mut buf)?;
                 return Ok(serde_json::from_str(&buf)?);
             }
-            Err(_) if retries < 120 => {
+            Err(_) if retries < 10 => {
                 retries += 1;
-                thread::sleep(Duration::from_millis(500));
+                thread::sleep(Duration::from_millis(300));
             }
             Err(e) => return Err(e.into()),
         }

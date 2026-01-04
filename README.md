@@ -1,7 +1,19 @@
 # PNIDGrab
-This README is undergoing a full rewrite. Check back later! But here's a Sneak Peek of what you can expect soon!
-<img width="1777" height="973" alt="image" src="https://github.com/user-attachments/assets/340844db-3680-4cda-a0c5-8a07412f8d34" />
+PNIDGrab is a cross-platform PID Grabber for Splatoon on Cemu. It grabs the Principle ID, the Pretendo Network ID and all information about the player's Inkling (or Octo). Everything you'll ever need to report cheaters to the Network Moderators (aside from video evidence of course)!
 
+<img width="1741" height="939" alt="image" src="https://github.com/user-attachments/assets/27073f0a-8450-4b81-b271-b860a86bb225" />
+
+## Important notes
+### Windows
+Because PNIDGrab goes in Cemu's memory and reads from it, anti virus software may flag it. This is a false positive. The only way to get around it is to add it as an exception. Not much I can do about it, unfortunately.
+
+### macOS
+The binary is not signed by Apple, because I don't pay Apple $99 per year for a paid developer account. You will get an error saying that Apple can't verify that this application is free from malware. The easiest solution to that issue is opening a Terminal and running `sudo xattr -cr /Applications/PNIDGrab.app/`. After that, you can run the application as usual and won't have to redo this step again until you update the application.
+
+### Linux
+Arch Linux has a weird issue with their permission system if you run a Wayland session. Even though you get Polkit to ask for your password, the application will likely not run. This is also not specific to PNIDGrab. I've seen the exact same issue with GParted on my CachyOS installation. Other distros don't seem to be affected.
+
+If you're affected by this issue, I'd recommend to try and run it on a different distro inside a Distrobox. If you don't wish to use a Distrobox or that fails too, grab the last CLI-only release (2.x). 
 
 ## Credits
 * [c8ff](https://github.com/c8ff) for finding a method to get Cemu's base address without reading the log file

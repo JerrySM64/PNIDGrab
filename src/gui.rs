@@ -37,6 +37,7 @@ pub fn maybe_run_helper() -> bool {
     false
 }
 
+#[cfg(target_os = "macos")]
 fn get_password() -> Option<String> {
     #[cfg(target_os = "macos")]
     {
@@ -65,86 +66,45 @@ fn get_password() -> Option<String> {
         return if pw.is_empty() { None } else { Some(pw) };
     }
 
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(output) = Command::new("zenity")
-            .args([
-                "--password",
-                "--title=PNIDGrab",
-                "--text=PNIDGrab needs root to read process memory.",
-            ])
-            .output()
-        {
-            if output.status.success() {
-                let mut pw = String::from_utf8_lossy(&output.stdout).to_string();
-                while pw.ends_with('\n') || pw.ends_with('\r') {
-                    pw.pop();
-                }
-                if !pw.is_empty() {
-                    return Some(pw);
-                }
-            }
-        }
-
-        if let Ok(output) = Command::new("kdialog")
-            .args([
-                "--title",
-                "PNIDGrab",
-                "--password",
-                "PNIDGrab needs root to read process memory.",
-            ])
-            .output()
-        {
-            if output.status.success() {
-                let mut pw = String::from_utf8_lossy(&output.stdout).to_string();
-                while pw.ends_with('\n') || pw.ends_with('\r') {
-                    pw.pop();
-                }
-                if !pw.is_empty() {
-                    return Some(pw);
-                }
-            }
-        }
-
-        eprint!("Password (will be echoed): ");
-        let _ = std::io::stderr().flush();
-        let mut pw = String::new();
-        if std::io::stdin().read_line(&mut pw).is_ok() {
-            while pw.ends_with('\n') || pw.ends_with('\r') {
-                pw.pop();
-            }
-            if !pw.is_empty() {
-                return Some(pw);
-            }
-        }
-        return None;
-    }
-
     #[allow(unreachable_code)]
     None
 }
 
 fn start_privileged_helper() -> Result<()> {
-    let Some(password) = get_password() else {
-        anyhow::bail!("Password prompt was cancelled or failed");
-    };
-
     let exe = std::env::current_exe().context("current_exe failed")?;
 
-    let mut child = Command::new("sudo")
-        .arg("-S")
-        .arg("--")
-        .arg(exe)
-        .arg("--helper")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .context("failed to spawn sudo helper")?;
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("pkexec")
+            .arg(exe)
+            .arg("--helper")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .context("failed to spawn pkexec helper")?;
+    }
 
-    if let Some(mut stdin) = child.stdin.take() {
-        let _ = write!(stdin, "{}\n", password);
-        let _ = stdin.flush();
+    #[cfg(target_os = "macos")]
+    {
+        let Some(password) = get_password() else {
+            anyhow::bail!("Password prompt was cancelled or failed");
+        };
+
+        let mut child = Command::new("sudo")
+            .arg("-S")
+            .arg("--")
+            .arg(exe)
+            .arg("--helper")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .context("failed to spawn sudo helper")?;
+
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = write!(stdin, "{}\n", password);
+            let _ = stdin.flush();
+        }
     }
 
     Ok(())

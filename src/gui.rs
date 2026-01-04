@@ -3,14 +3,20 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use libadwaita as adw;
 use libadwaita::prelude::*;
+#[cfg(target_family = "unix")]
 use std::io::{Read, Write};
+#[cfg(target_family = "unix")]
 use std::os::unix::net::{UnixListener, UnixStream};
+#[cfg(target_family = "unix")]
 use std::process::{Command, Stdio};
+#[cfg(target_family = "unix")]
 use std::thread;
+#[cfg(target_family = "unix")]
 use std::time::Duration;
 
 use crate::{FetchResult, PlayerRecord, fetch_all};
 
+#[cfg(target_family = "unix")]
 pub fn maybe_run_helper() -> bool {
     if std::env::args().any(|a| a == "--helper") {
         let sock_path = "/tmp/pnidgrab.sock";
@@ -34,6 +40,11 @@ pub fn maybe_run_helper() -> bool {
         }
         return true;
     }
+    false
+}
+
+#[cfg(not(target_family = "unix"))]
+pub fn maybe_run_helper() -> bool {
     false
 }
 
@@ -70,6 +81,7 @@ fn get_password() -> Option<String> {
     None
 }
 
+#[cfg(target_family = "unix")]
 fn start_privileged_helper() -> Result<()> {
     let exe = std::env::current_exe().context("current_exe failed")?;
 
@@ -110,6 +122,12 @@ fn start_privileged_helper() -> Result<()> {
     Ok(())
 }
 
+#[cfg(not(target_family = "unix"))]
+fn request_fetch_via_helper() -> Result<FetchResult> {
+    anyhow::bail!("Helper socket not supported on this platform");
+}
+
+#[cfg(target_family = "unix")]
 fn request_fetch_via_helper() -> Result<FetchResult> {
     let mut retries = 0;
     loop {
@@ -268,8 +286,11 @@ pub fn run_app() -> Result<()> {
         return Ok(());
     }
 
-    if nix::unistd::geteuid().as_raw() != 0 {
-        let _ = start_privileged_helper();
+    #[cfg(target_family = "unix")]
+    {
+        if nix::unistd::geteuid().as_raw() != 0 {
+            let _ = start_privileged_helper();
+        }
     }
 
     let app = adw::Application::builder()

@@ -29,7 +29,6 @@ const PLAYER_ROOT_PTR: u32 = 0x101DD330;
 const PLAYER_LIST_OFFSET: u32 = 0x10;
 const PLAYER_SLOT_STRIDE: u32 = 0x4;
 const OFF_NAME: u32 = 0x6;
-const OFF_AREA: u32 = 0x2C;
 const OFF_GENDER: u32 = 0x34;
 const OFF_SKIN_TONE: u32 = 0x38;
 const OFF_EYE_COLOR: u32 = 0x3C;
@@ -42,8 +41,7 @@ const OFF_RANK_POINTS: u32 = 0xB0;
 const OFF_FEST_TEAM: u32 = 0xB4;
 const OFF_FEST_ID: u32 = 0xB8;
 const OFF_FEST_GRADE: u32 = 0xBC;
-const OFF_WEAPONSET: u32 = 0x40;
-// const OFF_WEAPONID_MAIN: u32 = 0x44;
+const OFF_WEAPONID_MAIN: u32 = 0x44;
 const OFF_WEAPONID_SUB: u32 = 0x48;
 const OFF_WEAPONID_SPECIAL: u32 = 0x4C;
 const OFF_WEAPONTURF_TOTAL: u32 = 0x50;
@@ -61,7 +59,6 @@ pub struct PlayerRecord {
     pub pid_dec: u32,
     pub pnid: String,
 
-    pub area: u32,
     pub gender: u8,
     pub skin_tone: u8,
     pub eye_color: u8,
@@ -75,18 +72,14 @@ pub struct PlayerRecord {
     pub tank_id: u32,
     pub tank_name: String,
 
-    pub weapon_set: u16,
-    pub weapon_set_name: String,
+    pub weapon_id_main: u16,
+    pub weapon_main_name: String,
     pub weapon_id_sub: u16,
     pub weapon_sub_name: String,
     pub weapon_id_special: u8,
     pub weapon_special_name: String,
     pub weaponturf_total: u32,
 
-    /*
-    pub weapon_id_main: u16,
-    pub weapon_main_name: String,
-    */
     pub rank: i8,
     pub rank_points: i8,
     pub rank_label: String,
@@ -178,7 +171,6 @@ pub fn fetch_all() -> Result<FetchResult> {
                 pid_dec: 0,
                 pnid: "0".to_string(),
 
-                area: 0,
                 gender: 0,
                 skin_tone: 0,
                 eye_color: 0,
@@ -193,18 +185,14 @@ pub fn fetch_all() -> Result<FetchResult> {
                 tank_id: 0,
                 tank_name: "Unknown".to_string(),
 
-                weapon_set: 0,
-                weapon_set_name: "Unknown".to_string(),
+                weapon_id_main: 0,
+                weapon_main_name: "Unknown".to_string(),
                 weapon_id_sub: 0,
                 weapon_sub_name: "Unknown".to_string(),
                 weapon_id_special: 0,
                 weapon_special_name: "Unknown".to_string(),
                 weaponturf_total: 0,
 
-                /*
-                weapon_id_main: 0,
-                weapon_main_name: "Unknown".to_string(),
-                */
                 rank: 0,
                 rank_points: 0,
                 rank_label: "Unknown".to_string(),
@@ -226,7 +214,6 @@ pub fn fetch_all() -> Result<FetchResult> {
         );
         let pnid = get_pnid(pid_raw as i32);
 
-        let area = proc_mem.read_u32(player_ptr + OFF_AREA)?;
         let gender = proc_mem.read_u32(player_ptr + OFF_GENDER)? as u8;
         let skin_tone = proc_mem.read_u32(player_ptr + OFF_SKIN_TONE)? as u8;
         let eye_color = proc_mem.read_u32(player_ptr + OFF_EYE_COLOR)? as u8;
@@ -247,16 +234,8 @@ pub fn fetch_all() -> Result<FetchResult> {
         let fest_id = proc_mem.read_u32(player_ptr + OFF_FEST_ID)?;
         let fest_grade = proc_mem.read_u32(player_ptr + OFF_FEST_GRADE)?;
 
-        /*
-        let weapon_word = proc_mem.read_u32(player_ptr + OFF_WEAPON_WORD)?;
-        let weapon_id = ((weapon_word >> 8) & 0xFFFF) as u16;
-
         let weapon_id_main = proc_mem.read_u32(player_ptr + OFF_WEAPONID_MAIN)? as u16;
         let weapon_main_name = weapon_name_main(weapon_id_main).to_string();
-        */
-
-        let weapon_set = proc_mem.read_u32(player_ptr + OFF_WEAPONSET)? as u16;
-        let weapon_set_name = weapon_name_main(weapon_set).to_string();
         let weapon_id_sub = proc_mem.read_u32(player_ptr + OFF_WEAPONID_SUB)? as u16;
         let weapon_sub_name = weapon_name_sub(weapon_id_sub).to_string();
         let weapon_id_special = proc_mem.read_u32(player_ptr + OFF_WEAPONID_SPECIAL)? as u8;
@@ -271,7 +250,6 @@ pub fn fetch_all() -> Result<FetchResult> {
             pid_dec: pid_raw,
             pnid,
 
-            area,
             gender,
             skin_tone,
             eye_color,
@@ -285,18 +263,14 @@ pub fn fetch_all() -> Result<FetchResult> {
             tank_id,
             tank_name,
 
-            weapon_set,
-            weapon_set_name,
+            weapon_id_main,
+            weapon_main_name,
             weapon_id_sub,
             weapon_sub_name,
             weapon_id_special,
             weapon_special_name,
             weaponturf_total,
-
-            /*
-            weapon_id_main,
-            weapon_main_name,
-            */
+            
             rank,
             rank_points,
             rank_label,

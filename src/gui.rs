@@ -177,10 +177,6 @@ fn gender_label(code: u8) -> &'static str {
     }
 }
 
-fn skin_tone_label(code: u8) -> String {
-    format!("Type {}", code)
-}
-
 fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord) {
     let dialog = adw::Window::builder()
         .transient_for(parent)
@@ -222,7 +218,6 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
     mk(format!("PID (Hex): {}", player.pid_hex));
     mk(format!("PID (Dec): {}", player.pid_dec));
     mk(format!("PNID: {}", player.pnid));
-    mk(format!("Area: {}", player.area));
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
 
     mk_header("Appearance");
@@ -231,13 +226,9 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
         player.gender,
         gender_label(player.gender)
     ));
+    mk(format!("Skin Tone: {}", player.skin_tone));
     mk(format!(
-        "SkinTone: {} ({})",
-        player.skin_tone,
-        skin_tone_label(player.skin_tone)
-    ));
-    mk(format!(
-        "EyeColor: {} ({})",
+        "Eye Color: {} ({})",
         player.eye_color, player.eye_color_name
     ));
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
@@ -259,15 +250,9 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
     content_box.append(&gtk4::Separator::new(gtk4::Orientation::Horizontal));
     mk_header("Weapon");
     mk(format!(
-        "Weapon Set (Can be inaccurate): {} ({})",
-        player.weapon_set, player.weapon_set_name
-    ));
-    /*
-    mk(format!(
         "Main Weapon ID: {} ({})",
         player.weapon_id_main, player.weapon_main_name
     ));
-    */
     mk(format!(
         "Sub Weapon ID: {} ({})",
         player.weapon_id_sub, player.weapon_sub_name
@@ -286,7 +271,7 @@ fn show_player_properties(parent: &adw::ApplicationWindow, player: &PlayerRecord
     mk(format!("Level: {}", player.rank + 1));
     mk(format!(
         "Rank: {} ({})",
-        player.rank_points, player.rank_label
+        player.rank_label, player.rank_points
     ));
     mk(format!("Fest ID: {}", player.fest_id));
     mk(format!("Fest Team: {}", player.fest_team));
@@ -513,38 +498,53 @@ fn build_ui(app: &adw::Application) {
     copy_button.connect_clicked(move |_| {
         let mut copy_text = String::new();
         for p in player_data_copy.borrow().iter() {
-            copy_text.push_str(&format!("Player #{}\n", p.index + 1));
+            copy_text.push_str(&format!("Player {}\n", p.index + 1));
             copy_text.push_str(&format!("Name: {}\n", p.name));
             copy_text.push_str(&format!("PID Hex: {}\n", p.pid_hex));
             copy_text.push_str(&format!("PID Dec: {}\n", p.pid_dec));
             copy_text.push_str(&format!("PNID: {}\n", p.pnid));
 
-            copy_text.push_str(&format!("Area: {}\n", p.area));
             copy_text.push_str(&format!(
                 "Gender: {} ({})\n",
                 p.gender,
                 gender_label(p.gender)
             ));
-            copy_text.push_str(&format!(
-                "Skin Tone: {} ({})\n",
-                p.skin_tone,
-                skin_tone_label(p.skin_tone)
-            ));
+            copy_text.push_str(&format!("Skin Tone: {}\n", p.skin_tone));
             copy_text.push_str(&format!(
                 "Eye Color: {} ({})\n",
                 p.eye_color, p.eye_color_name
             ));
-            copy_text.push_str(&format!("Headgear: {}\n", p.headgear));
-            copy_text.push_str(&format!("Clothes: {}\n", p.clothes));
-            copy_text.push_str(&format!("Shoes: {}\n", p.shoes));
-            copy_text.push_str(&format!("Ink Tank: {}\n", p.tank_id));
             copy_text.push_str(&format!(
-                "Weapon Set (Can be inaccurate): {} ({})\n",
-                p.weapon_set, p.weapon_set_name
+                "Headgear: {} ({})\n",
+                p.headgear, p.headgear_name
+            ));
+            copy_text.push_str(&format!(
+                "Clothes: {} ({})\n",
+                p.clothes, p.clothes_name
+            ));
+            copy_text.push_str(&format!(
+                "Shoes: {} ({})\n",
+                p.shoes, p.shoes_name
+            ));
+            copy_text.push_str(&format!(
+                "Ink Tank: {} ({})\n",
+                p.tank_id, p.tank_name
+            ));
+            copy_text.push_str(&format!(
+                "Main Weapon ID: {} ({})\n",
+                p.weapon_id_main, p.weapon_main_name
+            ));
+            copy_text.push_str(&format!(
+                "Main Weapon ID: {} ({})\n",
+                p.weapon_id_sub, p.weapon_sub_name
+            ));
+            copy_text.push_str(&format!(
+                "Special Weapon ID: {} ({})\n",
+                p.weapon_id_special, p.weapon_special_name
             ));
 
             copy_text.push_str(&format!("Level: {}\n", p.rank + 1));
-            copy_text.push_str(&format!("Rank: {} ({})\n", p.rank_points, p.rank_label));
+            copy_text.push_str(&format!("Rank: {} ({})\n", p.rank_label, p.rank_points));
             copy_text.push_str(&format!("Fest Team: {}\n", p.fest_team));
             copy_text.push_str(&format!("Fest ID: {}\n", p.fest_id));
             copy_text.push_str(&format!("Fest Title: {}\n", p.fest_grade));

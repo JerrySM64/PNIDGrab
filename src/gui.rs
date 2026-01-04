@@ -92,8 +92,9 @@ fn start_privileged_helper() -> Result<()> {
         Command::new("pkexec")
             .arg(exe)
             .arg("--helper")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .spawn()
             .context("failed to spawn pkexec helper")?;
     }
@@ -139,9 +140,9 @@ fn request_fetch_via_helper() -> Result<FetchResult> {
                 s.read_to_string(&mut buf)?;
                 return Ok(serde_json::from_str(&buf)?);
             }
-            Err(_) if retries < 10 => {
+            Err(_) if retries < 120 => {
                 retries += 1;
-                thread::sleep(Duration::from_millis(300));
+                thread::sleep(Duration::from_millis(500));
             }
             Err(e) => return Err(e.into()),
         }

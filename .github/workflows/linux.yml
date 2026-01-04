@@ -21,6 +21,7 @@ jobs:
             curl \
             git \
             pkg-config \
+            libssl-dev \
             libgtk-4-dev \
             libadwaita-1-dev \
             libfuse2

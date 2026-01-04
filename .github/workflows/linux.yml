@@ -47,6 +47,7 @@ jobs:
           Categories=Utility;
           Terminal=false
           DESKTOP
+          cp "$APPDIR/usr/share/applications/PNIDGrab.desktop" "$APPDIR/PNIDGrab.desktop"
           cat > "$APPDIR/AppRun" <<'APP_RUN'
           #!/bin/sh
           exec "$(dirname "$0")/usr/bin/pnidgrab" "$@"
@@ -55,6 +56,7 @@ jobs:
           printf '%s' \
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=' \
             | base64 -d > "$APPDIR/usr/share/icons/hicolor/256x256/apps/pnidgrab.png"
+          cp "$APPDIR/usr/share/icons/hicolor/256x256/apps/pnidgrab.png" "$APPDIR/pnidgrab.png"
           curl -L -o appimagetool.AppImage \
             https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage

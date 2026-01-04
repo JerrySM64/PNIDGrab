@@ -16,14 +16,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install GTK dependencies
-        run: brew install gtk4 libadwaita
+        run: brew install gtk4 libadwaita dylibbundler
       - name: Build
         run: cargo build --release
       - name: Build DMG
         run: |
           APP_ROOT="dist/PNIDGrab.app"
-          mkdir -p "$APP_ROOT/Contents/MacOS" "$APP_ROOT/Contents/Resources"
+          mkdir -p "$APP_ROOT/Contents/MacOS" "$APP_ROOT/Contents/Resources" \
+            "$APP_ROOT/Contents/Frameworks"
           cp target/release/pnidgrab "$APP_ROOT/Contents/MacOS/PNIDGrab"
+          dylibbundler -od -b \
+            -x "$APP_ROOT/Contents/MacOS/PNIDGrab" \
+            -d "$APP_ROOT/Contents/Frameworks" \
+            -p @executable_path/../Frameworks/
           cat > "$APP_ROOT/Contents/Info.plist" <<'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

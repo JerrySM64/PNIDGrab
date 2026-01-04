@@ -1,0 +1,64 @@
+name: Build PNIDGrab for Linux
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  linux-appimage:
+    name: Package as an AppImage
+    runs-on: ubuntu-latest
+    container: debian:12
+    steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential \
+            ca-certificates \
+            curl \
+            git \
+            pkg-config \
+            libgtk-4-dev \
+            libadwaita-1-dev \
+            libfuse2
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+      - name: Build
+        run: ~/.cargo/bin/cargo build --release
+      - name: Build AppImage
+        run: |
+          APPDIR=AppDir
+          mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" \
+            "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+          cp target/release/pnidgrab "$APPDIR/usr/bin/pnidgrab"
+          cat > "$APPDIR/usr/share/applications/PNIDGrab.desktop" <<'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=PNIDGrab
+          Exec=pnidgrab
+          Icon=pnidgrab
+          Categories=Utility;
+          Terminal=false
+          DESKTOP
+          cat > "$APPDIR/AppRun" <<'APP_RUN'
+          #!/bin/sh
+          exec "$(dirname "$0")/usr/bin/pnidgrab" "$@"
+          APP_RUN
+          chmod +x "$APPDIR/AppRun"
+          printf '%s' \
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=' \
+            | base64 -d > "$APPDIR/usr/share/icons/hicolor/256x256/apps/pnidgrab.png"
+          curl -L -o appimagetool.AppImage \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
+          ARCH=x86_64 ./appimagetool.AppImage "$APPDIR" PNIDGrab-x86_64.AppImage
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnidgrab-linux-appimage
+          path: PNIDGrab-x86_64.AppImage

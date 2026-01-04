@@ -1,0 +1,32 @@
+name: Build PNIDGrab for Windows
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  windows-zip:
+    name: Package as a ZIP Archive
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --release
+      - name: Package Zip
+        shell: pwsh
+        run: |
+          $out = "dist/windows"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          Copy-Item "target/release/pnidgrab.exe" $out
+          Get-ChildItem "target/release" -Filter "*.dll" | Copy-Item -Destination $out
+          Compress-Archive -Path "$out/*" -DestinationPath "PNIDGrab-windows.zip" -Force
+      - name: Upload Zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnidgrab-windows-zip
+          path: PNIDGrab-windows.zip

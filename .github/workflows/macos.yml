@@ -1,0 +1,56 @@
+name: Build PNIDGrab for macOS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  macos-dmg:
+    name: Package as a DMG Volume
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install GTK dependencies
+        run: brew install gtk4 libadwaita
+      - name: Build
+        run: cargo build --release
+      - name: Build DMG
+        run: |
+          APP_ROOT="dist/PNIDGrab.app"
+          mkdir -p "$APP_ROOT/Contents/MacOS" "$APP_ROOT/Contents/Resources"
+          cp target/release/pnidgrab "$APP_ROOT/Contents/MacOS/PNIDGrab"
+          cat > "$APP_ROOT/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>PNIDGrab</string>
+            <key>CFBundleDisplayName</key>
+            <string>PNIDGrab</string>
+            <key>CFBundleExecutable</key>
+            <string>PNIDGrab</string>
+            <key>CFBundleIdentifier</key>
+            <string>dev.jerrysm64.pnidgrab</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+          </dict>
+          </plist>
+          PLIST
+          DMG_DIR="dist/dmg"
+          mkdir -p "$DMG_DIR"
+          cp -R "$APP_ROOT" "$DMG_DIR/"
+          ln -s /Applications "$DMG_DIR/Applications"
+          hdiutil create -volname "PNIDGrab" -srcfolder "$DMG_DIR" -ov -format UDZO dist/PNIDGrab.dmg
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnidgrab-macos-dmg
+          path: dist/PNIDGrab.dmg

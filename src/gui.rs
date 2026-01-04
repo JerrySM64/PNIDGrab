@@ -1,4 +1,6 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
+#[cfg(target_family = "unix")]
+use anyhow::Context;
 use gtk4::glib;
 use gtk4::prelude::*;
 use libadwaita as adw;

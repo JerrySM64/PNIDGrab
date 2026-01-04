@@ -19,6 +19,7 @@ jobs:
             build-essential \
             ca-certificates \
             curl \
+            file \
             git \
             pkg-config \
             libssl-dev \

@@ -101,14 +101,16 @@ impl Drop for WindowsProcessMemory {
 
 unsafe fn find_cemu_base(process_handle: *mut c_void) -> Result<u64> {
     let mut address = 0;
-    let mut mbi: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
+    let mut mbi: MEMORY_BASIC_INFORMATION = unsafe { std::mem::zeroed() };
 
-    while VirtualQueryEx(
-        process_handle,
-        address as *mut c_void,
-        &mut mbi,
-        std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
-    ) != 0
+    while unsafe {
+        VirtualQueryEx(
+            process_handle,
+            address as *mut c_void,
+            &mut mbi,
+            std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+        )
+    } != 0
     {
         let region_size = mbi.RegionSize as u64;
         let is_readable = mbi.Protect & PAGE_READWRITE != 0;
@@ -119,13 +121,15 @@ unsafe fn find_cemu_base(process_handle: *mut c_void) -> Result<u64> {
             let mut bytes_read = 0;
 
             let read_address = (address as u64 + 0xE000000) as *const c_void;
-            if ReadProcessMemory(
-                process_handle,
-                read_address,
-                buffer.as_mut_ptr() as *mut c_void,
-                20,
-                &mut bytes_read,
-            ) != 0
+            if unsafe {
+                ReadProcessMemory(
+                    process_handle,
+                    read_address,
+                    buffer.as_mut_ptr() as *mut c_void,
+                    20,
+                    &mut bytes_read,
+                )
+            } != 0
             {
                 if buffer.windows(3).any(|w| w == PATTERN) {
                     return Ok(address as u64);

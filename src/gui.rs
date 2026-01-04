@@ -94,9 +94,9 @@ fn start_privileged_helper() -> Result<()> {
         let helper_path = format!("/tmp/pnidgrab-helper-{}", std::process::id());
         let helper_exe = if std::fs::copy(&exe, &helper_path).is_ok() {
             let _ = std::fs::set_permissions(&helper_path, std::fs::Permissions::from_mode(0o755));
-            helper_path.as_str()
+            helper_path
         } else {
-            exe.to_string_lossy().as_ref()
+            exe.to_string_lossy().to_string()
         };
         Command::new("pkexec")
             .arg(helper_exe)

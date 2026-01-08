@@ -318,7 +318,7 @@ pub fn run_app() -> Result<()> {
 fn build_ui(app: &adw::Application) {
     let win = adw::ApplicationWindow::builder()
         .application(app)
-        .title("PNIDGrab 4.0.0")
+        .title("PNIDGrab 4.0.1")
         .default_width(450)
         .default_height(335)
         .resizable(false)

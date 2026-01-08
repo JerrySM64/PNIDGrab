@@ -528,7 +528,7 @@ fn build_ui(app: &adw::Application) {
                 p.weapon_id_main, p.weapon_main_name
             ));
             copy_text.push_str(&format!(
-                "Main Weapon ID: {} ({})\n",
+                "Sub Weapon ID: {} ({})\n",
                 p.weapon_id_sub, p.weapon_sub_name
             ));
             copy_text.push_str(&format!(

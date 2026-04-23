@@ -49,6 +49,7 @@ jobs:
           </dict>
           </plist>
           PLIST
+          codesign --sign "-" --entitlements "${{github.workspace}}/app.entitlements.plist" --force --deep --preserve-metadata=entitlements,requirements,flags,runtime --timestamp $APP_ROOT
           DMG_DIR="dist/dmg"
           mkdir -p "$DMG_DIR"
           cp -R "$APP_ROOT" "$DMG_DIR/"

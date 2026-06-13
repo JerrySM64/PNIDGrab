@@ -1,4 +1,7 @@
+# PNIDGrab got replaced by [SquidMod](https://github.com/JerrySM64/SquidMod)
+
 # PNIDGrab
+
 PNIDGrab is a cross-platform PID Grabber for Splatoon on Cemu. It grabs the Principle ID, the Pretendo Network ID and all information about the player's Inkling (or Octo). Everything you'll ever need to report cheaters to the Network Moderators (aside from video evidence of course)!
 
 <img width="1741" height="939" alt="image" src="https://github.com/user-attachments/assets/27073f0a-8450-4b81-b271-b860a86bb225" />
